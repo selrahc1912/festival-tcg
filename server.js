@@ -28,6 +28,11 @@ io.on('connection', (socket) => {
         ]
       });
 
+  socket.on('player_action', (actionData) => {
+    // Redirige l'action vers tous les autres joueurs de la même room
+    socket.to(actionData.room).emit('opponent_action', actionData);
+  });
+      
       waitingPlayer = null;
     } else {
       waitingPlayer = socket;
