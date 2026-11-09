@@ -14,36 +14,28 @@ let waitingPlayer = null;
 io.on('connection', (socket) => {
   console.log('Un joueur s\'est connecté :', socket.id);
 
-  socket.on('find_match', (playerData) => {
-    if (waitingPlayer) {
-      const roomName = 'room_' + socket.id + '_' + waitingPlayer.id;
-      socket.join(roomName);
-      waitingPlayer.join(roomName);
+  socket.on('find_match', (data) => {
+    socket.playerData = data; // Stocke temporairement le deck et le pseudo du joueur
 
-      io.to(roomName).emit('match_found', {
-        room: roomName,
+    if (waitingPlayer) {
+      const room = 'room_' + socket.id;
+      socket.join(room);
+      waitingPlayer.join(room);
+
+      // On envoie les données croisées des deux joueurs
+      io.to(room).emit('match_found', {
+        room: room,
         players: [
-          { id: waitingPlayer.id, data: waitingPlayer.data },
-          { id: socket.id, data: playerData }
+          { id: waitingPlayer.id, data: waitingPlayer.playerData },
+          { id: socket.id, data: socket.playerData }
         ]
       });
 
-  socket.on('player_action', (actionData) => {
-    // Redirige l'action vers tous les autres joueurs de la même room
-    socket.to(actionData.room).emit('opponent_action', actionData);
-  });
-      
       waitingPlayer = null;
     } else {
       waitingPlayer = socket;
-      waitingPlayer.data = playerData;
       socket.emit('waiting');
     }
-  });
-
-  socket.on('disconnect', () => {
-    if (waitingPlayer === socket) waitingPlayer = null;
-    console.log('Joueur déconnecté :', socket.id);
   });
 });
 
